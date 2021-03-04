@@ -1,5 +1,6 @@
 require "xml_security"
 require "onelogin/ruby-saml/attribute_service"
+require "onelogin/ruby-saml/contact_person"
 require "onelogin/ruby-saml/utils"
 require "onelogin/ruby-saml/validation_error"
 
@@ -27,6 +28,7 @@ module OneLogin
           end
         end
         @attribute_consuming_service = AttributeService.new
+        @contact_person = ContactPerson.new
       end
 
       # IdP Data
@@ -63,7 +65,15 @@ module OneLogin
       attr_accessor :authn_context
       attr_accessor :authn_context_comparison
       attr_accessor :authn_context_decl_ref
+      attr_accessor :display_name
+      attr_accessor :description
+      attr_accessor :logo
+      attr_accessor :organization_name
+      attr_accessor :organization_display_name
+      attr_accessor :organization_url
+      attr_accessor :technical_contact
       attr_reader :attribute_consuming_service
+      attr_reader :contact_person
       # Work-flow
       attr_accessor :security
       attr_accessor :soft

@@ -22,7 +22,8 @@ module OneLogin
       def generate(settings, pretty_print=false, valid_until=nil, cache_duration=nil)
         meta_doc = XMLSecurity::Document.new
         namespaces = {
-            "xmlns:md" => "urn:oasis:names:tc:SAML:2.0:metadata"
+            "xmlns:md" => "urn:oasis:names:tc:SAML:2.0:metadata",
+            "xmlns:mdui" => "urn:oasis:names:tc:SAML:2.0:metadata"
         }
         if settings.attribute_consuming_service.configured?
           namespaces["xmlns:saml"] = "urn:oasis:names:tc:SAML:2.0:assertion"
@@ -86,6 +87,73 @@ module OneLogin
               "isDefault" => true,
               "index" => 0
           }
+        end
+
+        if settings.display_name || settings.description
+          sp_ext = sp_sso.add_element "md:Extensions"
+          sp_ui = sp_ext.add_element "mdui:UIInfo"
+
+          if settings.display_name
+            ui_name = sp_ui.add_element "mdui:DisplayName", {
+              "xml:lang" => "en"
+            }
+            ui_name.text = settings.display_name
+          end
+
+          if settings.description
+            ui_description = sp_ui.add_element "mdui:Description", {
+              "xml:lang" => "en"
+            }
+            ui_description.text = settings.description
+          end
+
+          if settings.logo
+            ui_logo = sp_ui.add_element "mdui:Logo", {
+              "xml:lang" => "en"
+            }
+            ui_logo.text = settings.logo
+          end
+        end
+
+        if settings.organization_name || settings.organization_display_name || settings.organization_url
+          sp_org = root.add_element "md:Organization"
+
+          if settings.organization_name
+            org_name = sp_org.add_element "md:OrganizationName", {
+              "xml:lang" => "en"
+            }
+            org_name.text = settings.organization_name
+          end
+
+          if settings.organization_display_name
+            org_name = sp_org.add_element "md:OrganizationDisplayName", {
+              "xml:lang" => "en"
+            }
+            org_name.text = settings.organization_display_name
+          end
+
+          if settings.organization_url
+            org_name = sp_org.add_element "md:OrganizationURL", {
+              "xml:lang" => "en"
+            }
+            org_name.text = settings.organization_url
+          end
+        end
+
+        if settings.contact_person.configured?
+          settings.contact_person.contacts.each do |contact|
+            sp_contact = root.add_element "md:ContactPerson", {
+              "contactType" => contact[:contact_type] || 'other'
+            }
+
+            if contact[:given_name]
+              sp_given_name = sp_contact.add_element "md:GivenName"
+              sp_given_name.text = contact[:given_name]
+            end
+
+            sp_email = sp_contact.add_element "md:EmailAddress"
+            sp_email.text = contact[:email]
+          end
         end
 
         if settings.attribute_consuming_service.configured?
