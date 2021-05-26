@@ -227,11 +227,10 @@ module OneLogin
               statuses = nodes.collect do |inner_node|
                 inner_node.attributes["Value"]
               end
-              extra_code = statuses.join(" | ")
-              if extra_code
-                code = "#{code} | #{extra_code}"
-              end
+
+              code = [code, statuses].flatten.join(" | ")
             end
+
             code
           end
         end
@@ -828,7 +827,7 @@ module OneLogin
         # otherwise, review if the decrypted assertion contains a signature
         sig_elements = REXML::XPath.match(
           document,
-          "/p:Response[@ID=$id]/ds:Signature]",
+          "/p:Response[@ID=$id]/ds:Signature",
           { "p" => PROTOCOL, "ds" => DSIG },
           { 'id' => document.signed_element_id }
         )
