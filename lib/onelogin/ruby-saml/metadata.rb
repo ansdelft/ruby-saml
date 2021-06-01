@@ -89,7 +89,7 @@ module OneLogin
           }
         end
 
-        if settings.display_name || settings.description
+        if settings.display_name || settings.description || settings.logo || settings.privacy_statement_url
           sp_ext = sp_sso.add_element "md:Extensions"
           sp_ui = sp_ext.add_element "mdui:UIInfo"
 
@@ -105,6 +105,13 @@ module OneLogin
               "xml:lang" => "en"
             }
             ui_description.text = settings.description
+          end
+
+          if settings.privacy_statement_url
+            ui_privacy_statement_url = sp_ui.add_element "mdui:PrivacyStatementURL", {
+              "xml:lang" => "en"
+            }
+            ui_privacy_statement_url.text = settings.privacy_statement_url
           end
 
           if settings.logo

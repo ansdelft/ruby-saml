@@ -67,6 +67,7 @@ module OneLogin
       attr_accessor :authn_context_decl_ref
       attr_accessor :display_name
       attr_accessor :description
+      attr_accessor :privacy_statement_url
       attr_accessor :logo
       attr_accessor :organization_name
       attr_accessor :organization_display_name
