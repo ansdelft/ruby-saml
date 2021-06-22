@@ -192,7 +192,7 @@ module OneLogin
         #  <md:RoleDescriptor xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:query="urn:oasis:names:tc:SAML:metadata:ext:query" xsi:type="query:AttributeQueryDescriptorType" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"/>
         #  <md:XACMLAuthzDecisionQueryDescriptor WantAssertionsSigned="false" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"/>
 
-        meta_doc << REXML::XMLDecl.new("1.0", "UTF-8")
+        meta_doc << REXML::XMLDecl.new('1.0', 'UTF-8')
 
         # embed signature
         if settings.security[:metadata_signed] && settings.private_key && settings.certificate
@@ -200,7 +200,7 @@ module OneLogin
           meta_doc.sign_document(private_key, cert, settings.security[:signature_method], settings.security[:digest_method])
         end
 
-        ret = ""
+        ret = ''
         # pretty print the XML so IdP administrators can easily see what the SP supports
         if pretty_print
           meta_doc.write(ret, 1)
@@ -208,7 +208,7 @@ module OneLogin
           ret = meta_doc.to_s
         end
 
-        return ret
+        ret.gsub("\n", '').gsub(/>\s*/, '>').gsub(/\s*</, '<')
       end
     end
   end
