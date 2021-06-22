@@ -23,7 +23,7 @@ module OneLogin
         meta_doc = XMLSecurity::Document.new
         namespaces = {
             "xmlns:md" => "urn:oasis:names:tc:SAML:2.0:metadata",
-            "xmlns:mdui" => "urn:oasis:names:tc:SAML:2.0:metadata"
+            "xmlns:mdui" => "urn:oasis:names:tc:SAML:2.0:metadata:ui"
         }
         if settings.attribute_consuming_service.configured?
           namespaces["xmlns:saml"] = "urn:oasis:names:tc:SAML:2.0:assertion"
@@ -34,6 +34,39 @@ module OneLogin
             "AuthnRequestsSigned" => settings.security[:authn_requests_signed],
             "WantAssertionsSigned" => settings.security[:want_assertions_signed],
         }
+
+        if settings.display_name || settings.description || settings.logo || settings.privacy_statement_url
+          sp_ext = sp_sso.add_element "md:Extensions"
+          sp_ui = sp_ext.add_element "mdui:UIInfo"
+
+          if settings.display_name
+            ui_name = sp_ui.add_element "mdui:DisplayName", {
+              "xml:lang" => "en"
+            }
+            ui_name.text = settings.display_name
+          end
+
+          if settings.description
+            ui_description = sp_ui.add_element "mdui:Description", {
+              "xml:lang" => "en"
+            }
+            ui_description.text = settings.description
+          end
+
+          if settings.privacy_statement_url
+            ui_privacy_statement_url = sp_ui.add_element "mdui:PrivacyStatementURL", {
+              "xml:lang" => "en"
+            }
+            ui_privacy_statement_url.text = settings.privacy_statement_url
+          end
+
+          if settings.logo
+            ui_logo = sp_ui.add_element "mdui:Logo", {
+              "xml:lang" => "en"
+            }
+            ui_logo.text = settings.logo
+          end
+        end
 
         # Add KeyDescriptor if messages will be signed / encrypted
         # with SP certificate, and new SP certificate if any
@@ -87,39 +120,6 @@ module OneLogin
               "isDefault" => true,
               "index" => 0
           }
-        end
-
-        if settings.display_name || settings.description || settings.logo || settings.privacy_statement_url
-          sp_ext = sp_sso.add_element "md:Extensions"
-          sp_ui = sp_ext.add_element "mdui:UIInfo"
-
-          if settings.display_name
-            ui_name = sp_ui.add_element "mdui:DisplayName", {
-              "xml:lang" => "en"
-            }
-            ui_name.text = settings.display_name
-          end
-
-          if settings.description
-            ui_description = sp_ui.add_element "mdui:Description", {
-              "xml:lang" => "en"
-            }
-            ui_description.text = settings.description
-          end
-
-          if settings.privacy_statement_url
-            ui_privacy_statement_url = sp_ui.add_element "mdui:PrivacyStatementURL", {
-              "xml:lang" => "en"
-            }
-            ui_privacy_statement_url.text = settings.privacy_statement_url
-          end
-
-          if settings.logo
-            ui_logo = sp_ui.add_element "mdui:Logo", {
-              "xml:lang" => "en"
-            }
-            ui_logo.text = settings.logo
-          end
         end
 
         if settings.organization_name || settings.organization_display_name || settings.organization_url
@@ -203,12 +203,12 @@ module OneLogin
         ret = ''
         # pretty print the XML so IdP administrators can easily see what the SP supports
         if pretty_print
-          meta_doc.write(ret, 1)
+          meta_doc.write(ret, 1, save_with: 0)
         else
           ret = meta_doc.to_s
         end
 
-        ret.gsub("\n", '').gsub(/>\s*/, '>').gsub(/\s*</, '<')
+        ret
       end
     end
   end
