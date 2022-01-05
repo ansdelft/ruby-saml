@@ -26,7 +26,7 @@ module OneLogin
         sp_sso = add_sp_sso_element(root, settings)
         add_mdui_elements(sp_sso, settings)
         add_sp_certificates(sp_sso, settings)
-        add_sp_service_elements(sp_sso, settings)
+        add_sp_service_elements(sp_sso, root, settings)
         add_extras(root, settings)
         embed_signature(meta_doc, settings)
         output_xml(meta_doc, pretty_print)
@@ -127,7 +127,7 @@ module OneLogin
         sp_sso
       end
 
-      def add_sp_service_elements(sp_sso, settings)
+      def add_sp_service_elements(sp_sso, root, settings)
         if settings.single_logout_service_url
           sp_sso.add_element "md:SingleLogoutService", {
               "Binding" => settings.single_logout_service_binding,
