@@ -490,14 +490,22 @@ class RubySamlTest < Minitest::Test
         assert_empty response.errors
       end
 
-      it "return true when the audience is self closing" do
+      it "return true when the audience is self closing and strict audience validation is not enabled" do
         response_audience_self_closed.settings = settings
         response_audience_self_closed.settings.sp_entity_id = '{audience}'
         assert response_audience_self_closed.send(:validate_audience)
         assert_empty response_audience_self_closed.errors
       end
 
-      it "return false when the audience is valid" do
+      it "return false when the audience is self closing and strict audience validation is enabled" do
+        response_audience_self_closed.settings = settings
+        response_audience_self_closed.settings.security[:strict_audience_validation] = true
+        response_audience_self_closed.settings.sp_entity_id = '{audience}'
+        refute response_audience_self_closed.send(:validate_audience)
+        assert_includes response_audience_self_closed.errors, "Invalid Audiences. The <AudienceRestriction> element contained only empty <Audience> elements. Expected audience {audience}."
+      end
+
+      it "return false when the audience is invalid" do
         response.settings = settings
         response.settings.sp_entity_id = 'invalid_audience'
         assert !response.send(:validate_audience)
@@ -1107,40 +1115,70 @@ class RubySamlTest < Minitest::Test
         end
       end
 
-      it "optionally allows for clock drift" do
+      it "optionally allows for clock drift on NotBefore" do
+        settings.soft = true
+
         # The NotBefore condition in the document is 2011-06-14T18:21:01.516Z
         Timecop.freeze(Time.parse("2011-06-14T18:21:01Z")) do
-          settings.soft = true
           special_response_with_saml2_namespace = OneLogin::RubySaml::Response.new(
             response_document_with_saml2_namespace,
             :allowed_clock_drift => 0.515,
             :settings => settings
           )
           assert !special_response_with_saml2_namespace.send(:validate_conditions)
-        end
 
-        Timecop.freeze(Time.parse("2011-06-14T18:21:01Z")) do
           special_response_with_saml2_namespace = OneLogin::RubySaml::Response.new(
             response_document_with_saml2_namespace,
             :allowed_clock_drift => 0.516
           )
           assert special_response_with_saml2_namespace.send(:validate_conditions)
-        end
 
-        Timecop.freeze(Time.parse("2011-06-14T18:21:01Z")) do
-          settings.soft = true
           special_response_with_saml2_namespace = OneLogin::RubySaml::Response.new(
             response_document_with_saml2_namespace,
             :allowed_clock_drift => '0.515',
             :settings => settings
           )
           assert !special_response_with_saml2_namespace.send(:validate_conditions)
-        end
 
-        Timecop.freeze(Time.parse("2011-06-14T18:21:01Z")) do
           special_response_with_saml2_namespace = OneLogin::RubySaml::Response.new(
             response_document_with_saml2_namespace,
             :allowed_clock_drift => '0.516'
+          )
+          assert special_response_with_saml2_namespace.send(:validate_conditions)
+        end
+      end
+
+      it "optionally allows for clock drift on NotOnOrAfter" do
+        # Java Floats behave differently than MRI
+        java = defined?(RUBY_ENGINE) && %w[jruby truffleruby].include?(RUBY_ENGINE)
+
+        settings.soft = true
+
+        # The NotBefore condition in the document is 2011-06-1418:31:01.516Z
+        Timecop.freeze(Time.parse("2011-06-14T18:31:02Z")) do
+          special_response_with_saml2_namespace = OneLogin::RubySaml::Response.new(
+              response_document_with_saml2_namespace,
+              :allowed_clock_drift => 0.483,
+              :settings => settings
+          )
+          assert !special_response_with_saml2_namespace.send(:validate_conditions)
+
+          special_response_with_saml2_namespace = OneLogin::RubySaml::Response.new(
+              response_document_with_saml2_namespace,
+              :allowed_clock_drift => java ? 0.485 : 0.484
+          )
+          assert special_response_with_saml2_namespace.send(:validate_conditions)
+
+          special_response_with_saml2_namespace = OneLogin::RubySaml::Response.new(
+              response_document_with_saml2_namespace,
+              :allowed_clock_drift => '0.483',
+              :settings => settings
+          )
+          assert !special_response_with_saml2_namespace.send(:validate_conditions)
+
+          special_response_with_saml2_namespace = OneLogin::RubySaml::Response.new(
+              response_document_with_saml2_namespace,
+              :allowed_clock_drift => java ? '0.485' : '0.484'
           )
           assert special_response_with_saml2_namespace.send(:validate_conditions)
         end

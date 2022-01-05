@@ -63,7 +63,7 @@ module OneLogin
           end
         end
 
-        @response = decode_raw_saml(response)
+        @response = decode_raw_saml(response, settings)
         @document = XMLSecurity::SignedDocument.new(@response, @errors)
 
         if assertion_encrypted?
@@ -337,9 +337,9 @@ module OneLogin
       end
 
       # returns the allowed clock drift on timing validation
-      # @return [Integer]
+      # @return [Float]
       def allowed_clock_drift
-        return options[:allowed_clock_drift].to_f
+        options[:allowed_clock_drift].to_f.abs + Float::EPSILON
       end
 
       # Checks if the SAML Response contains or not an EncryptedAssertion element
@@ -376,7 +376,6 @@ module OneLogin
         return false unless validate_response_state
 
         validations = [
-          :validate_response_state,
           :validate_version,
           :validate_id,
           :validate_success_status,
@@ -614,7 +613,12 @@ module OneLogin
       #
       def validate_audience
         return true if options[:skip_audience]
-        return true if audiences.empty? || settings.sp_entity_id.nil? || settings.sp_entity_id.empty?
+        return true if settings.sp_entity_id.nil? || settings.sp_entity_id.empty?
+
+        if audiences.empty?
+          return true unless settings.security[:strict_audience_validation]
+          return append_error("Invalid Audiences. The <AudienceRestriction> element contained only empty <Audience> elements. Expected audience #{settings.sp_entity_id}.")
+        end
 
         unless audiences.include? settings.sp_entity_id
           s = audiences.count > 1 ? 's' : '';
@@ -693,13 +697,13 @@ module OneLogin
 
         now = Time.now.utc
 
-        if not_before && (now_with_drift = now + allowed_clock_drift) < not_before
-          error_msg = "Current time is earlier than NotBefore condition (#{now_with_drift} < #{not_before})"
+        if not_before && now < (not_before - allowed_clock_drift)
+          error_msg = "Current time is earlier than NotBefore condition (#{now} < #{not_before}#{" - #{allowed_clock_drift.ceil}s" if allowed_clock_drift > 0})"
           return append_error(error_msg)
         end
 
-        if not_on_or_after && now >= (not_on_or_after_with_drift = not_on_or_after + allowed_clock_drift)
-          error_msg = "Current time is on or after NotOnOrAfter condition (#{now} >= #{not_on_or_after_with_drift})"
+        if not_on_or_after && now >= (not_on_or_after + allowed_clock_drift)
+          error_msg = "Current time is on or after NotOnOrAfter condition (#{now} >= #{not_on_or_after}#{" + #{allowed_clock_drift.ceil}s" if allowed_clock_drift > 0})"
           return append_error(error_msg)
         end
 
@@ -741,7 +745,7 @@ module OneLogin
         return true if session_expires_at.nil?
 
         now = Time.now.utc
-        unless (session_expires_at + allowed_clock_drift) > now
+        unless now < (session_expires_at + allowed_clock_drift)
           error_msg = "The attributes have expired, based on the SessionNotOnOrAfter of the AuthnStatement of this Response"
           return append_error(error_msg)
         end
@@ -779,8 +783,8 @@ module OneLogin
 
           attrs = confirmation_data_node.attributes
           next if (attrs.include? "InResponseTo" and attrs['InResponseTo'] != in_response_to) ||
-                  (attrs.include? "NotOnOrAfter" and (parse_time(confirmation_data_node, "NotOnOrAfter") + allowed_clock_drift) <= now) ||
-                  (attrs.include? "NotBefore" and parse_time(confirmation_data_node, "NotBefore") > (now + allowed_clock_drift)) ||
+                  (attrs.include? "NotBefore" and now < (parse_time(confirmation_data_node, "NotBefore") - allowed_clock_drift)) ||
+                  (attrs.include? "NotOnOrAfter" and now >= (parse_time(confirmation_data_node, "NotOnOrAfter") + allowed_clock_drift)) ||
                   (attrs.include? "Recipient" and !options[:skip_recipient_check] and settings and attrs['Recipient'] != settings.assertion_consumer_service_url)
 
           valid_subject_confirmation = true
