@@ -94,6 +94,21 @@ class RequestTest < Minitest::Test
       end
     end
 
+    describe "playgin with preix" do
+      it "creates request with ID prefixed with default '_'" do
+        request = OneLogin::RubySaml::Logoutrequest.new
+
+        assert_match /^_/, request.uuid
+      end
+
+      it "creates request with ID is prefixed, when :id_prefix is passed" do
+        OneLogin::RubySaml::Utils::set_prefix("test")
+        request = OneLogin::RubySaml::Logoutrequest.new
+        assert_match /^test/, request.uuid
+        OneLogin::RubySaml::Utils::set_prefix("_")
+      end
+    end
+
     describe "signing with HTTP-POST binding" do
 
       before do
@@ -306,6 +321,17 @@ class RequestTest < Minitest::Test
         signature_algorithm = XMLSecurity::BaseDocument.new.algorithm(params['SigAlg'])
         assert_equal signature_algorithm, OpenSSL::Digest::SHA1
         assert cert.public_key.verify(signature_algorithm.new, Base64.decode64(params['Signature']), query_string)
+      end
+    end
+
+    describe "#manipulate request_id" do
+      it "be able to modify the request id" do
+        logoutrequest = OneLogin::RubySaml::Logoutrequest.new
+        request_id = logoutrequest.request_id
+        assert_equal request_id, logoutrequest.uuid
+        logoutrequest.uuid = "new_uuid"
+        assert_equal logoutrequest.request_id, logoutrequest.uuid
+        assert_equal "new_uuid", logoutrequest.request_id
       end
     end
   end

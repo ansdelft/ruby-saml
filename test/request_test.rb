@@ -161,6 +161,19 @@ class RequestTest < Minitest::Test
       assert auth_url.include?('&RelayState=http%3A%2F%2Fexample.com')
     end
 
+    it "creates request with ID prefixed with default '_'" do
+      request = OneLogin::RubySaml::Authrequest.new
+
+      assert_match /^_/, request.uuid
+    end
+
+    it "creates request with ID is prefixed, when :id_prefix is passed" do
+      OneLogin::RubySaml::Utils::set_prefix("test")
+      request = OneLogin::RubySaml::Authrequest.new
+      assert_match /^test/, request.uuid
+      OneLogin::RubySaml::Utils::set_prefix("_")
+    end
+
     describe "when the target url is not set" do
       before do
         settings.idp_sso_service_url = nil
@@ -386,6 +399,17 @@ class RequestTest < Minitest::Test
         assert_equal signature_algorithm, OpenSSL::Digest::SHA1
 
         assert cert.public_key.verify(signature_algorithm.new, Base64.decode64(params['Signature']), query_string)
+      end
+    end
+
+    describe "#manipulate request_id" do
+      it "be able to modify the request id" do
+        authnrequest = OneLogin::RubySaml::Authrequest.new
+        request_id = authnrequest.request_id
+        assert_equal request_id, authnrequest.uuid
+        authnrequest.uuid = "new_uuid"
+        assert_equal authnrequest.request_id, authnrequest.uuid
+        assert_equal "new_uuid", authnrequest.request_id
       end
     end
   end
