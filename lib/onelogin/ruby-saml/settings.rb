@@ -21,7 +21,7 @@ module OneLogin
         end
 
         config.each do |k,v|
-          acc = "#{k.to_s}=".to_sym
+          acc = "#{k}=".to_sym
           if respond_to? acc
             value = v.is_a?(Hash) ? v.dup : v
             send(acc, value)
@@ -206,17 +206,13 @@ module OneLogin
 
         certs = {:signing => [], :encryption => [] }
 
-        if idp_cert_multi.key?(:signing) and not idp_cert_multi[:signing].empty?
-          idp_cert_multi[:signing].each do |idp_cert|
-            formatted_cert = OneLogin::RubySaml::Utils.format_cert(idp_cert)
-            certs[:signing].push(OpenSSL::X509::Certificate.new(formatted_cert))
-          end
-        end
+        [:signing, :encryption].each do |type|
+          certs_for_type = idp_cert_multi[type] || idp_cert_multi[type.to_s]
+          next if !certs_for_type || certs_for_type.empty?
 
-        if idp_cert_multi.key?(:encryption) and not idp_cert_multi[:encryption].empty?
-          idp_cert_multi[:encryption].each do |idp_cert|
+          certs_for_type.each do |idp_cert|
             formatted_cert = OneLogin::RubySaml::Utils.format_cert(idp_cert)
-            certs[:encryption].push(OpenSSL::X509::Certificate.new(formatted_cert))
+            certs[type].push(OpenSSL::X509::Certificate.new(formatted_cert))
           end
         end
 
@@ -258,7 +254,6 @@ module OneLogin
         OpenSSL::PKey::RSA.new(formatted_private_key)
       end
 
-      private
 
       def idp_binding_from_embed_sign
         security[:embed_sign] ? Utils::BINDINGS[:post] : Utils::BINDINGS[:redirect]

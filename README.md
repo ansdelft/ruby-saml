@@ -1,8 +1,8 @@
 # Ruby SAML
-[![Build Status](https://github.com/onelogin/ruby-saml/actions/workflows/test.yml/badge.svg?query=branch%3Amaster)](https://github.com/onelogin/ruby-saml/actions/workflows/test.yml?query=branch%3Amaster)
-[![Coverage Status](https://coveralls.io/repos/onelogin/ruby-saml/badge.svg?branch=master)](https://coveralls.io/r/onelogin/ruby-saml?branch=master)
-
-## **Notice:** This project is currently not under active development, please see [#640](https://github.com/onelogin/ruby-saml/issues/640) for more information.
+[![ruby-saml CI](https://github.com/SAML-Toolkits/ruby-saml/actions/workflows/test.yml/badge.svg)](https://github.com/SAML-Toolkits/ruby-saml/actions/workflows/test.yml)
+[![Coverage Status](https://coveralls.io/repos/github/SAML-Toolkits/ruby-saml/badge.svg?branch=master)](https://coveralls.io/github/SAML-Toolkits/ruby-saml?branch=master)
+[![Rubygem Version](https://badge.fury.io/rb/ruby-saml.svg)](https://badge.fury.io/rb/ruby-saml)
+[![GitHub version](https://badge.fury.io/gh/SAML-Toolkits%2Fruby-saml.svg)](https://badge.fury.io/gh/SAML-Toolkits%2Fruby-saml) ![GitHub](https://img.shields.io/github/license/SAML-Toolkits/ruby-saml) ![Gem](https://img.shields.io/gem/dtv/ruby-saml?label=gem%20downloads%20latest) ![Gem](https://img.shields.io/gem/dt/ruby-saml?label=gem%20total%20downloads)
 
 Ruby SAML minor and tiny versions may introduce breaking changes. Please read
 [UPGRADING.md](UPGRADING.md) for guidance on upgrading to new Ruby SAML versions.
@@ -16,7 +16,7 @@ requests from identity providers.
 SAML authorization is a two step process and you are expected to implement support for both.
 
 We created a demo project for Rails 4 that uses the latest version of this library:
-[ruby-saml-example](https://github.com/onelogin/ruby-saml-example)
+[ruby-saml-example](https://github.com/saml-toolkits/ruby-saml-example)
 
 ### Supported Ruby Versions
 
@@ -30,8 +30,12 @@ The following Ruby versions are covered by CI testing:
 * 2.6.x
 * 2.7.x
 * 3.0.x
+* 3.1
+* 3.2
 * JRuby 9.1.x
 * JRuby 9.2.x
+* JRuby 9.3.X
+* JRuby 9.4.0
 * TruffleRuby (latest)
 
 In addition, the following may work but are untested:
@@ -54,8 +58,7 @@ In addition, the following may work but are untested:
 ## Security Guidelines
 
 If you believe you have discovered a security vulnerability in this gem, please report it
-at https://www.onelogin.com/security with a description. We follow responsible disclosure
-guidelines, and will work with you to quickly find a resolution.
+by mail to the maintainer: sixto.martin.garcia+security@gmail.com
 
 ### Security Warning
 
@@ -89,7 +92,7 @@ Using `Gemfile`
 gem 'ruby-saml', '~> 1.11.0'
 
 # or track master for bleeding-edge
-gem 'ruby-saml', :github => 'onelogin/ruby-saml'
+gem 'ruby-saml', :github => 'saml-toolkit/ruby-saml'
 ```
 
 Using RubyGems
@@ -393,6 +396,51 @@ IdpMetadataParser by its Entity Id value:
 The `OneLogin::RubySaml::IdpMetadataParser` also provides the methods `#parse_to_hash` and `#parse_remote_to_hash`.
 Those return an Hash instead of a `Settings` object, which may be useful for configuring
 [omniauth-saml](https://github.com/omniauth/omniauth-saml), for instance.
+
+
+### Validating Signature of Metadata and retrieve settings
+
+Right now there is no method at ruby_saml to validate the signature of the metadata that gonna be parsed,
+but it can be done as follows:
+* Download the XML.
+* Validate the Signature, providing the cert.
+* Provide the XML to the parse method if the signature was validated
+
+```
+require "xml_security"
+require "onelogin/ruby-saml/utils"
+require "onelogin/ruby-saml/idp_metadata_parser"
+
+url = "<url_to_the_metadata>"
+idp_metadata_parser = OneLogin::RubySaml::IdpMetadataParser.new
+
+uri = URI.parse(url)
+raise ArgumentError.new("url must begin with http or https") unless /^https?/ =~ uri.scheme
+http = Net::HTTP.new(uri.host, uri.port)
+if uri.scheme == "https"
+    http.use_ssl = true
+    http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+end
+
+get = Net::HTTP::Get.new(uri.request_uri)
+get.basic_auth uri.user, uri.password if uri.user
+response = http.request(get)
+xml = response.body
+errors = []
+doc = XMLSecurity::SignedDocument.new(xml, errors)
+cert_str = "<include_cert_here>"
+cert = OneLogin::RubySaml::Utils.format_cert("cert_str")
+metadata_sign_cert = OpenSSL::X509::Certificate.new(cert)
+valid = doc.validate_document_with_cert(metadata_sign_cert, true)
+if valid
+  settings = idp_metadata_parser.parse(
+    xml,
+    entity_id: "<entity_id_of_the_entity_to_be_retrieved>"
+  )
+else
+  print "Metadata Signarture failed to be verified with the cert provided"
+end
+
 
 ## Retrieving Attributes
 

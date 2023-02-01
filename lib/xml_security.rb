@@ -177,7 +177,7 @@ module XMLSecurity
 
     def compute_digest(document, digest_algorithm)
       digest = digest_algorithm.digest(document)
-      Base64.encode64(digest).strip!
+      Base64.encode64(digest).strip
     end
 
   end
@@ -216,7 +216,7 @@ module XMLSecurity
         if options[:fingerprint_alg]
           fingerprint_alg = XMLSecurity::BaseDocument.new.algorithm(options[:fingerprint_alg]).new
         else
-          fingerprint_alg = OpenSSL::Digest::SHA1.new
+          fingerprint_alg = OpenSSL::Digest.new('SHA1')
         end
         fingerprint = fingerprint_alg.hexdigest(cert.to_der)
 
