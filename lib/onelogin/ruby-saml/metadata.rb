@@ -91,9 +91,10 @@ module OneLogin
           end
 
           if settings.logo
-            ui_logo = sp_ui.add_element "mdui:Logo", {
-              "xml:lang" => "en"
-            }
+            logo_attributes = {"xml:lang" => "en"}
+            logo_attributes['width'] = settings.logo_width if settings.logo_width
+            logo_attributes['height'] = settings.logo_height if settings.logo_height
+            ui_logo = sp_ui.add_element "mdui:Logo", logo_attributes
             ui_logo.text = settings.logo
           end
         end
