@@ -244,7 +244,7 @@ module OneLogin
 
         # pretty print the XML so IdP administrators can easily see what the SP supports
         if pretty_print
-          meta_doc.write(ret, 1, save_with: 0)
+          meta_doc.write(output: ret, indent: 2, save_with: 0)
         else
           ret = meta_doc.to_s
         end
