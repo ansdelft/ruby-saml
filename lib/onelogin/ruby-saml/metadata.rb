@@ -91,9 +91,10 @@ module OneLogin
           end
 
           if settings.logo
-            ui_logo = sp_ui.add_element "mdui:Logo", {
-              "xml:lang" => "en"
-            }
+            logo_attributes = {"xml:lang" => "en"}
+            logo_attributes['width'] = settings.logo_width if settings.logo_width
+            logo_attributes['height'] = settings.logo_height if settings.logo_height
+            ui_logo = sp_ui.add_element "mdui:Logo", logo_attributes
             ui_logo.text = settings.logo
           end
         end
@@ -243,7 +244,7 @@ module OneLogin
 
         # pretty print the XML so IdP administrators can easily see what the SP supports
         if pretty_print
-          meta_doc.write(ret, 1, save_with: 0)
+          meta_doc.write(output: ret, indent: 2, save_with: 0)
         else
           ret = meta_doc.to_s
         end

@@ -71,6 +71,8 @@ module OneLogin
       attr_accessor :description
       attr_accessor :privacy_statement_url
       attr_accessor :logo
+      attr_accessor :logo_width
+      attr_accessor :logo_height
       attr_accessor :organization_name
       attr_accessor :organization_display_name
       attr_accessor :organization_url
