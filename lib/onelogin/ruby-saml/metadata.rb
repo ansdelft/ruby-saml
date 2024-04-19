@@ -41,7 +41,7 @@ module OneLogin
       def add_root_element(meta_doc, settings, valid_until, cache_duration)
         namespaces = {
             "xmlns:md" => "urn:oasis:names:tc:SAML:2.0:metadata",
-            "xmlns:mdui" => "urn:oasis:names:tc:SAML:2.0:metadata:ui"
+            "xmlns:mdui" => "urn:oasis:names:tc:SAML:metadata:ui"
         }
 
         if settings.attribute_consuming_service.configured?
